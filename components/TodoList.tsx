@@ -24,6 +24,7 @@ const TodoList: React.FC = () => {
   const [task, setTask] = useState("");
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     const storedTodos = localStorage.getItem("todos");
@@ -83,44 +84,60 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const handleExport = () => {
+    setIsExportModalOpen(true);
+  };
+
+  const copyToClipboard = () => {
+    const formattedTasks = todos
+      .map((todo, index) => `${index + 1}. ${todo.text}${todo.completed ? ' (Completed)' : ''}`)
+      .join('\n');
+    
+    navigator.clipboard.writeText(formattedTasks).then(() => {
+      setIsExportModalOpen(false);
+    });
+  };
+
   return (
     <div>
-      <div
-        style={{ display: "flex", alignItems: "center", marginBottom: "2rem" }}
-      >
-        <Button
-          size="sm"
-          style={{
-            marginRight: "1rem",
-            height: "3rem",
-            backgroundColor: "red",
-            color: "white",
-          }}
-          onPress={confirmClearAllTasks}
-          aria-label="Clear all tasks"
-        >
-          <TrashIcon size={20} />
-        </Button>
-        <Input
-          size="lg"
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Add a new task"
-          aria-label="Add a new task"
-          style={{ width: "100%", borderRadius: "1rem", height: "3rem" }}
-          fullWidth
-          endContent={
-            <Kbd keys={["ctrl", "enter"]}></Kbd>
-          }
-        />
-        <Button
-          style={{ marginLeft: "1rem", height: "3rem" }}
-          onPress={addTask}
-          aria-label="Add task"
-        >
-          Add Task
-        </Button>
+      <div className="flex flex-col md:flex-row gap-2 mb-8">
+        <div className="flex gap-2 w-full">
+          <Button
+            size="sm"
+            className="bg-red-500 text-white h-12"
+            onPress={confirmClearAllTasks}
+            aria-label="Clear all tasks"
+          >
+            <TrashIcon size={20} />
+          </Button>
+          <Input
+            size="lg"
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Add a new task"
+            aria-label="Add a new task"
+            className="w-full rounded-2xl h-12"
+            endContent={
+              <Kbd keys={["ctrl", "enter"]}></Kbd>
+            }
+          />
+        </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button
+            className="h-12 flex-1 md:flex-none"
+            onPress={addTask}
+            aria-label="Add task"
+          >
+            Add Task
+          </Button>
+          <Button 
+            onClick={handleExport} 
+            className="bg-purple-600 text-white hover:bg-purple-700 h-12 flex-1 md:flex-none"
+          >
+            Export
+          </Button>
+        </div>
       </div>
       <Listbox aria-label="Todo list">
         {todos.map((todo) => (
@@ -186,6 +203,45 @@ const TodoList: React.FC = () => {
               aria-label="Cancel clear all tasks"
             >
               Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Export Modal */}
+      <Modal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)}
+        size="lg"
+      >
+        <ModalContent>
+          <ModalHeader>Export Tasks</ModalHeader>
+          <ModalBody>
+            <div className="space-y-2">
+              {todos.map((todo, index) => (
+                <div key={todo.id} className="flex items-center gap-2">
+                  <span className="font-medium">{index + 1}.</span>
+                  <span className={todo.completed ? "line-through" : ""}>
+                    {todo.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="secondary"
+              variant="light"
+              onClick={copyToClipboard}
+              className="mr-auto"
+            >
+              Copy to Clipboard
+            </Button>
+            <Button 
+              color="danger" 
+              variant="light" 
+              onClick={() => setIsExportModalOpen(false)}
+            >
+              Close
             </Button>
           </ModalFooter>
         </ModalContent>
