@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { Navbar as NextUINavbar } from "@nextui-org/navbar";
 import { Button } from "@nextui-org/button";
 import { Input } from "@nextui-org/input";
 import { Listbox, ListboxItem } from "@nextui-org/listbox";
 import { TrashIcon } from "@/components/icons";
-import {Kbd} from "@nextui-org/kbd";
+import { Kbd } from "@nextui-org/kbd";
 import {
   Modal,
   ModalHeader,
@@ -90,9 +91,12 @@ const TodoList: React.FC = () => {
 
   const copyToClipboard = () => {
     const formattedTasks = todos
-      .map((todo, index) => `${index + 1}. ${todo.text}${todo.completed ? ' (Completed)' : ''}`)
-      .join('\n');
-    
+      .map(
+        (todo, index) =>
+          `${index + 1}. ${todo.text}${todo.completed ? " (Completed)" : ""}`
+      )
+      .join("\n");
+
     navigator.clipboard.writeText(formattedTasks).then(() => {
       setIsExportModalOpen(false);
     });
@@ -100,45 +104,47 @@ const TodoList: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row gap-2 mb-8">
-        <div className="flex gap-2 w-full">
-          <Button
-            size="sm"
-            className="bg-red-500 text-white h-12"
-            onPress={confirmClearAllTasks}
-            aria-label="Clear all tasks"
-          >
-            <TrashIcon size={20} />
-          </Button>
-          <Input
-            size="lg"
-            value={task}
-            onChange={(e) => setTask(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Add a new task"
-            aria-label="Add a new task"
-            className="w-full rounded-2xl h-12"
-            endContent={
-              <Kbd keys={["ctrl", "enter"]}></Kbd>
-            }
-          />
+      <NextUINavbar position="sticky" className="pt-8">
+        <div className="w-full max-w-[1024px] mx-auto px-4">
+          <div className="flex flex-col md:flex-row gap-2 mb-8">
+            <div className="flex gap-2 w-full">
+              <Button
+                size="sm"
+                className="bg-red-500 text-white h-12"
+                onPress={confirmClearAllTasks}
+                aria-label="Clear all tasks"
+              >
+                <TrashIcon size={20} />
+              </Button>
+              <Input
+                size="lg"
+                value={task}
+                onChange={(e) => setTask(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Add a new task"
+                aria-label="Add a new task"
+                className="w-full rounded-2xl h-12"
+                endContent={<Kbd keys={["ctrl", "enter"]}></Kbd>}
+              />
+            </div>
+            <div className="flex gap-2 w-full md:w-auto justify-end">
+              <Button
+                className="h-12 flex-1 md:flex-none"
+                onPress={addTask}
+                aria-label="Add task"
+              >
+                Add Task
+              </Button>
+              <Button
+                onClick={handleExport}
+                className="bg-purple-600 text-white hover:bg-purple-700 h-12 flex-1 md:flex-none"
+              >
+                Export
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button
-            className="h-12 flex-1 md:flex-none"
-            onPress={addTask}
-            aria-label="Add task"
-          >
-            Add Task
-          </Button>
-          <Button 
-            onClick={handleExport} 
-            className="bg-purple-600 text-white hover:bg-purple-700 h-12 flex-1 md:flex-none"
-          >
-            Export
-          </Button>
-        </div>
-      </div>
+      </NextUINavbar>
       <Listbox aria-label="Todo list">
         {todos.map((todo) => (
           <ListboxItem key={todo.id} textValue={todo.text}>
@@ -208,8 +214,8 @@ const TodoList: React.FC = () => {
         </ModalContent>
       </Modal>
       {/* Export Modal */}
-      <Modal 
-        isOpen={isExportModalOpen} 
+      <Modal
+        isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         size="lg"
       >
@@ -236,9 +242,9 @@ const TodoList: React.FC = () => {
             >
               Copy to Clipboard
             </Button>
-            <Button 
-              color="danger" 
-              variant="light" 
+            <Button
+              color="danger"
+              variant="light"
               onClick={() => setIsExportModalOpen(false)}
             >
               Close
