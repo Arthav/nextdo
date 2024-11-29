@@ -30,7 +30,8 @@ const TodoList: React.FC = () => {
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [showTour, setShowTour] = useState(true);
+  
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     const storedTodos = localStorage.getItem("todos");
@@ -38,6 +39,13 @@ const TodoList: React.FC = () => {
       setTodos(JSON.parse(storedTodos));
     }
     setInitPhase(false);
+  }, []);
+  
+  useEffect(() => {
+    const storedShowTour = localStorage.getItem("tourShown");
+    if (storedShowTour === null) {
+      setShowTour(true);
+    }
   }, []);
 
   useEffect(() => {
