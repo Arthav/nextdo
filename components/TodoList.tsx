@@ -43,7 +43,7 @@ const TodoList: React.FC = () => {
   useEffect(() => {
     if (showTour) {
       const driverObj = driver({
-        popoverClass: 'driverjs-theme',
+        popoverClass: "driverjs-theme",
         showProgress: true,
         steps: [
           {
@@ -60,7 +60,8 @@ const TodoList: React.FC = () => {
             element: "#add-task-button",
             popover: {
               title: "Add Task Button",
-              description: "or use this button to add the typed task to the list.",
+              description:
+                "or use this button to add the typed task to the list.",
               side: "right",
               align: "start",
             },
