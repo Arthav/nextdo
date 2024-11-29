@@ -14,6 +14,10 @@ import {
 } from "@nextui-org/modal";
 import confetti from "canvas-confetti";
 
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
+import "@/styles/driver-js.css";
+
 interface Todo {
   id: number;
   text: string;
@@ -26,6 +30,7 @@ const TodoList: React.FC = () => {
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [showTour, setShowTour] = useState(true);
 
   useEffect(() => {
     const storedTodos = localStorage.getItem("todos");
@@ -34,6 +39,72 @@ const TodoList: React.FC = () => {
     }
     setInitPhase(false);
   }, []);
+
+  useEffect(() => {
+    if (showTour) {
+      const driverObj = driver({
+        popoverClass: 'driverjs-theme',
+        showProgress: true,
+        steps: [
+          {
+            element: "#todo-input",
+            popover: {
+              title: "Input Field",
+              description:
+                "Type a todo item and press CTRL + Enter to add it to the list.",
+              side: "left",
+              align: "start",
+            },
+          },
+          {
+            element: "#add-task-button",
+            popover: {
+              title: "Add Task Button",
+              description: "or use this button to add the typed task to the list.",
+              side: "right",
+              align: "start",
+            },
+          },
+          {
+            element: "#export-button",
+            popover: {
+              title: "Export",
+              description:
+                "You can export your todos to a copyable text by clicking this button.",
+              side: "top",
+              align: "start",
+            },
+          },
+          {
+            element: "#todo-list",
+            popover: {
+              title: "Task List",
+              description:
+                "Here is the list of your tasks. You can click on them to mark them as completed.",
+              side: "top",
+              align: "start",
+            },
+          },
+          {
+            popover: {
+              title: "That's it!",
+              description:
+                "And that is all, go ahead use the app to manage your tasks.",
+            },
+          },
+        ],
+      });
+
+      // Small delay to ensure DOM elements are rendered
+      setTimeout(() => {
+        driverObj.drive();
+      }, 500);
+
+      // Save tour state to localStorage
+      localStorage.setItem("tourShown", "true");
+      setShowTour(false);
+    }
+  }, [showTour]);
 
   useEffect(() => {
     if (initPhase) return;
@@ -117,6 +188,7 @@ const TodoList: React.FC = () => {
                 <TrashIcon size={20} />
               </Button>
               <Input
+                id="todo-input"
                 size="lg"
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
@@ -129,6 +201,7 @@ const TodoList: React.FC = () => {
             </div>
             <div className="flex gap-2 w-full md:w-auto justify-end">
               <Button
+                id="add-task-button"
                 className="h-12 flex-1 md:flex-none"
                 onPress={addTask}
                 aria-label="Add task"
@@ -136,6 +209,7 @@ const TodoList: React.FC = () => {
                 Add Task
               </Button>
               <Button
+                id="export-button"
                 onClick={handleExport}
                 className="bg-purple-600 text-white hover:bg-purple-700 h-12 flex-1 md:flex-none"
               >
@@ -145,7 +219,7 @@ const TodoList: React.FC = () => {
           </div>
         </div>
       </NextUINavbar>
-      <Listbox aria-label="Todo list">
+      <Listbox id="todo-list" aria-label="Todo list">
         {todos.map((todo) => (
           <ListboxItem key={todo.id} textValue={todo.text}>
             <div
