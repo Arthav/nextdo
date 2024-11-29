@@ -65,7 +65,6 @@ export const Navbar = () => {
       >
         <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
       </NavbarContent> */}
-
     </NextUINavbar>
   );
 };
