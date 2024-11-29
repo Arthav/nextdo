@@ -21,3 +21,9 @@
     border-bottom-color: #fde047;
   }
   
+  .driverjs-theme .driver-popover-prev-btn,
+.driverjs-theme .driver-popover-next-btn,
+.driverjs-theme .driver-popover-close-btn {
+  background-color: #3f3f46 !important;
+  color: white !important;
+}
