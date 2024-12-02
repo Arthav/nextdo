@@ -30,7 +30,7 @@ const TodoList: React.FC = () => {
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  
+
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const TodoList: React.FC = () => {
     }
     setInitPhase(false);
   }, []);
-  
+
   useEffect(() => {
     const storedShowTour = localStorage.getItem("tourShown");
     if (storedShowTour === null) {
@@ -181,6 +181,20 @@ const TodoList: React.FC = () => {
       setIsExportModalOpen(false);
     });
   };
+
+  const copyToClipboardHtml = () => {
+    const formattedTasks = `<ol>\n${todos
+      .map(
+        (todo) =>
+          `  <li>${todo.text}${todo.completed ? " (Completed)" : ""}</li>`
+      )
+      .join("\n")}\n</ol>`;
+  
+    navigator.clipboard.writeText(formattedTasks).then(() => {
+      setIsExportModalOpen(false);
+    });
+  };
+  
 
   return (
     <div>
@@ -324,6 +338,14 @@ const TodoList: React.FC = () => {
               className="mr-auto"
             >
               Copy to Clipboard
+            </Button>
+            <Button
+              color="secondary"
+              variant="light"
+              onClick={copyToClipboardHtml}
+              className="mr-auto"
+            >
+              Copy html
             </Button>
             <Button
               color="danger"
