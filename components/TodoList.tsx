@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Navbar as NextUINavbar } from "@nextui-org/navbar";
 import { Button } from "@nextui-org/button";
-import { Input } from "@nextui-org/input";
 import { Listbox, ListboxItem } from "@nextui-org/listbox";
 import { TrashIcon } from "@/components/icons";
-import { Kbd } from "@nextui-org/kbd";
 import {
   Modal,
   ModalHeader,
@@ -13,6 +11,7 @@ import {
   ModalContent,
 } from "@nextui-org/modal";
 import confetti from "canvas-confetti";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -239,7 +238,8 @@ const TodoList: React.FC = () => {
                   isMultiline ? "h-24" : "h-12"
                 }`}
               />
-            </div>
+            </div>{" "}
+            <SpeedInsights />
             <div className="flex gap-2 w-full md:w-auto justify-end">
               <Button
                 id="add-task-button"
