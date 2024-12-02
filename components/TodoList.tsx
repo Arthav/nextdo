@@ -30,6 +30,8 @@ const TodoList: React.FC = () => {
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Todo | null>(null);
 
   const [showTour, setShowTour] = useState(false);
 
@@ -189,12 +191,26 @@ const TodoList: React.FC = () => {
           `  <li>${todo.text}${todo.completed ? " (Completed)" : ""}</li>`
       )
       .join("\n")}\n</ol>`;
-  
+
     navigator.clipboard.writeText(formattedTasks).then(() => {
       setIsExportModalOpen(false);
     });
   };
-  
+
+  const handleEditTask = (todo: Todo) => {
+    setEditingTask(todo);
+    setIsEditModalOpen(true);
+  };
+
+  const saveEditedTask = () => {
+    if (editingTask) {
+      setTodos(todos.map((todo) =>
+        todo.id === editingTask.id ? editingTask : todo
+      ));
+      setIsEditModalOpen(false);
+      setEditingTask(null);
+    }
+  };
 
   return (
     <div>
@@ -271,6 +287,14 @@ const TodoList: React.FC = () => {
                 <Button
                   size="sm"
                   color="secondary"
+                  onPress={() => handleEditTask(todo)}
+                  aria-label="Edit task"
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  color="warning"
                   onPress={() => deleteTask(todo.id)}
                   aria-label="Delete task"
                 >
@@ -353,6 +377,43 @@ const TodoList: React.FC = () => {
               onClick={() => setIsExportModalOpen(false)}
             >
               Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingTask(null);
+        }}
+      >
+        <ModalContent>
+          <ModalHeader>Edit Task</ModalHeader>
+          <ModalBody>
+            <Input
+              value={editingTask?.text || ""}
+              onChange={(e) => setEditingTask(editingTask ? { ...editingTask, text: e.target.value } : null)}
+              placeholder="Edit your task"
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="primary"
+              onPress={saveEditedTask}
+              aria-label="Save edited task"
+            >
+              Save
+            </Button>
+            <Button
+              onPress={() => {
+                setIsEditModalOpen(false);
+                setEditingTask(null);
+              }}
+              aria-label="Cancel edit"
+            >
+              Cancel
             </Button>
           </ModalFooter>
         </ModalContent>
