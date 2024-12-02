@@ -32,6 +32,7 @@ const TodoList: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Todo | null>(null);
+  const isMultiline = task.split("\n").length > 1;
 
   const [showTour, setShowTour] = useState(false);
 
@@ -161,8 +162,9 @@ const TodoList: React.FC = () => {
     setIsModalVisible(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.ctrlKey && e.key === "Enter") {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
       addTask();
     }
   };
@@ -204,9 +206,9 @@ const TodoList: React.FC = () => {
 
   const saveEditedTask = () => {
     if (editingTask) {
-      setTodos(todos.map((todo) =>
-        todo.id === editingTask.id ? editingTask : todo
-      ));
+      setTodos(
+        todos.map((todo) => (todo.id === editingTask.id ? editingTask : todo))
+      );
       setIsEditModalOpen(false);
       setEditingTask(null);
     }
@@ -214,7 +216,7 @@ const TodoList: React.FC = () => {
 
   return (
     <div>
-      <NextUINavbar position="sticky" className="pt-8">
+      <NextUINavbar position="sticky" className="pt-8 sm:mb-0 pb-2">
         <div className="w-full max-w-[1024px] mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-2 mb-8">
             <div className="flex gap-2 w-full">
@@ -226,16 +228,16 @@ const TodoList: React.FC = () => {
               >
                 <TrashIcon size={20} />
               </Button>
-              <Input
+              <textarea
                 id="todo-input"
-                size="lg"
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Add a new task"
                 aria-label="Add a new task"
-                className="w-full rounded-2xl h-12"
-                endContent={<Kbd keys={["ctrl", "enter"]}></Kbd>}
+                className={`w-full rounded-2xl p-2 resize-none ${
+                  isMultiline ? "h-24" : "h-12"
+                }`}
               />
             </div>
             <div className="flex gap-2 w-full md:w-auto justify-end">
@@ -268,6 +270,8 @@ const TodoList: React.FC = () => {
               <div
                 style={{
                   textDecoration: todo.completed ? "line-through" : "none",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
                 }}
               >
                 {todo.text}
@@ -392,10 +396,17 @@ const TodoList: React.FC = () => {
         <ModalContent>
           <ModalHeader>Edit Task</ModalHeader>
           <ModalBody>
-            <Input
+            <textarea
+              id="todo-edit-input"
               value={editingTask?.text || ""}
-              onChange={(e) => setEditingTask(editingTask ? { ...editingTask, text: e.target.value } : null)}
+              onChange={(e) =>
+                setEditingTask(
+                  editingTask ? { ...editingTask, text: e.target.value } : null
+                )
+              }
               placeholder="Edit your task"
+              aria-label="Edit your task"
+              className="w-full rounded-2xl h-24 p-2 resize-none"
             />
           </ModalBody>
           <ModalFooter>
