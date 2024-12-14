@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Navbar as NextUINavbar } from "@nextui-org/navbar";
 import { Button } from "@nextui-org/button";
@@ -11,11 +13,13 @@ import {
   ModalContent,
 } from "@nextui-org/modal";
 import confetti from "canvas-confetti";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/styles/driver-js.css";
+
+import {instruction} from "@/components/constant/instruction";
 
 interface Todo {
   id: number;
@@ -32,6 +36,55 @@ const TodoList: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Todo | null>(null);
   const isMultiline = task.split("\n").length > 1;
+
+  // Gemini
+  const [loading, setLoading] = useState(false);
+
+  const generateTasksWithAI = async (prompt: string) => {
+    setLoading(true);
+    try {
+      const geminiKey = process.env.NEXT_PUBLIC_GEMINI_KEY;
+      if (!geminiKey) {
+        throw new Error("Missing API Key");
+      }
+
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: {
+          role: "system",
+          parts: [
+            {
+              text: instruction.todoList,
+            },
+          ],
+        },
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 150,
+          topP: 0.9,
+          topK: 50,
+        },
+      });
+
+      const result = await model.generateContent(prompt);
+      const aiTasks = result.response
+        .text()
+        .split("\n")
+        .map((task, index) => ({
+          id: Date.now() + index,
+          text: task.replace(/^\d+\.\s*/, "").trim(),
+          completed: false,
+        }))
+        .filter((task) => task.text !== "");
+
+      setTodos((prevTodos) => [...prevTodos, ...aiTasks]);
+    } catch (error) {
+      console.error("Error generating tasks with AI:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [showTour, setShowTour] = useState(false);
 
@@ -239,7 +292,6 @@ const TodoList: React.FC = () => {
                 }`}
               />
             </div>{" "}
-            <SpeedInsights />
             <div className="flex gap-2 w-full md:w-auto justify-end">
               <Button
                 id="add-task-button"
@@ -255,6 +307,13 @@ const TodoList: React.FC = () => {
                 className="bg-purple-600 text-white hover:bg-purple-700 h-12 flex-1 md:flex-none"
               >
                 Export
+              </Button>
+              <Button
+                onPress={() => generateTasksWithAI(task)}
+                disabled={loading}
+                className="bg-gradient-to-br from-blue-500 to-purple-600 text-white  h-12 flex-1 md:flex-none"
+              >
+                {loading ? "Generating..." : "Use AI"}
               </Button>
             </div>
           </div>
