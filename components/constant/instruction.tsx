@@ -9,5 +9,8 @@ export const instruction = {
         Be creative in your task generation.
         
         Here's an example format: Jog for 30 minutes, Read 20 pages of a book, Prepare a healthy lunch, Respond to 5 pending emails, Meditate for 10 minutes, Do leetcode easy 2 times and so on.
+
+        Do not add it like: Eat a healthy dinner, Drink plenty of water, Avoid sugary drinks. Because this is not objective task that can be measured.
+        Do not add long timespan task like, do it weekly, the task should be can be done in a short time.
         `,
 }
