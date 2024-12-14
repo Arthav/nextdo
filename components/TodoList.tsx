@@ -37,7 +37,7 @@ const TodoList: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Todo | null>(null);
   const isMultiline = task.split("\n").length > 1;
 
-  // Gemini
+  // Gemini API
   const [loading, setLoading] = useState(false);
 
   const generateTasksWithAI = async (prompt: string) => {
