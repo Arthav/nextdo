@@ -5,6 +5,9 @@ import { Navbar as NextUINavbar } from "@nextui-org/navbar";
 import { Button } from "@nextui-org/button";
 import { Listbox, ListboxItem } from "@nextui-org/listbox";
 import { TrashIcon } from "@/components/icons";
+import { toast, Bounce, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import {
   Modal,
   ModalHeader,
@@ -19,7 +22,7 @@ import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/styles/driver-js.css";
 
-import {instruction} from "@/components/constant/instruction";
+import { instruction } from "@/components/constant/instruction";
 
 interface Todo {
   id: number;
@@ -83,6 +86,7 @@ const TodoList: React.FC = () => {
       console.error("Error generating tasks with AI:", error);
     } finally {
       setLoading(false);
+      setTask("");
     }
   };
 
@@ -268,6 +272,8 @@ const TodoList: React.FC = () => {
 
   return (
     <div>
+      
+      <ToastContainer />
       <NextUINavbar position="sticky" className="pt-8 sm:mb-0 pb-2">
         <div className="w-full max-w-[1024px] mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-2 mb-8">
@@ -309,12 +315,33 @@ const TodoList: React.FC = () => {
                 Export
               </Button>
               <Button
-                onPress={() => generateTasksWithAI(task)}
+                onPress={() => {
+                  if (!task) {
+                    toast.error("Please enter a task for a prompt for AI first", {
+                      position: "bottom-center",
+                      autoClose: 3000,
+                      hideProgressBar: false,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                      progress: undefined,
+                      theme: "dark",
+                      transition: Bounce,
+                    });
+                  } else {
+                    generateTasksWithAI(task);
+                  }
+                }}
                 disabled={loading}
-                className="bg-gradient-to-br from-blue-500 to-purple-600 text-white  h-12 flex-1 md:flex-none"
+                className={
+                  task
+                    ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white h-12 flex-1 md:flex-none"
+                    : "bg-gray-500 text-white h-12 flex-1 md:flex-none"
+                }
               >
                 {loading ? "Generating..." : "Use AI"}
               </Button>
+
             </div>
           </div>
         </div>
@@ -336,7 +363,7 @@ const TodoList: React.FC = () => {
                 {todo.text}
               </div>
               <div className="text-xs text-gray-500">
-                {new Date(todo.id).toLocaleString()}
+                created at: {new Date(todo.id).toLocaleString()}
               </div>
 
               <div className="flex justify-end gap-2">
