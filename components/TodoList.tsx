@@ -225,6 +225,13 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const handleKeyPressEdit = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      saveEditedTask();
+    }
+  };
+
   const handleExport = () => {
     setIsExportModalOpen(true);
   };
@@ -485,6 +492,7 @@ const TodoList: React.FC = () => {
             <textarea
               id="todo-edit-input"
               value={editingTask?.text || ""}
+              onKeyDown={handleKeyPressEdit}
               onChange={(e) =>
                 setEditingTask(
                   editingTask ? { ...editingTask, text: e.target.value } : null
