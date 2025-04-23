@@ -54,7 +54,7 @@ export default function RootLayout({
                 href="https://nextui-docs-v2.vercel.app?utm_source=next-app-template"
                 title="nextui.org homepage"
               >
-                <span className="text-default-600">CB Todo Today</span>
+                <span className="text-default-600">CBOnz Todo Today</span>
               </Link>
             </footer>
           </div>
