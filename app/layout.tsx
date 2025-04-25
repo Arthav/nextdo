@@ -9,6 +9,9 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
+
 export const metadata: Metadata = {
   title: {
     default: siteConfig.name,
@@ -38,7 +41,7 @@ export default function RootLayout({
       <body
         className={clsx(
           "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
+          fontSans.variable
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
@@ -52,9 +55,10 @@ export default function RootLayout({
                 isExternal
                 className="flex items-center gap-1 text-current"
                 href="http://wa.me/6282233857510?text=Halo,%20saya%20mau%20request%20feature"
-                title="nextui.org homepage"
+                title="Contact My Whatsapp"
               >
-                <span className="text-default-600">CB Todo Today</span>
+                <FontAwesomeIcon icon={faWhatsapp} className="text-xs" />{" "}
+                <span className="text-default-600 no-wrap">Contact Me</span>
               </Link>
             </footer>
           </div>

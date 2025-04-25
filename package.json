@@ -4,11 +4,14 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev --turbo",
+		"thisshit": "next dev --turbo",
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
 	},
 	"dependencies": {
+		"@fortawesome/free-brands-svg-icons": "^6.7.2",
+		"@fortawesome/react-fontawesome": "^0.2.2",
 		"@google/generative-ai": "^0.21.0",
 		"@nextui-org/button": "2.0.38",
 		"@nextui-org/code": "2.0.33",
