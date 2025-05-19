@@ -33,7 +33,7 @@ interface Todo {
 const TodoList: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [todosHistory, setTodosHistory] = useState<Todo[]>([]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);  
+  const [historyIndex, setHistoryIndex] = useState<number>(0);
   const [task, setTask] = useState("");
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -583,7 +583,10 @@ const TodoList: React.FC = () => {
         <ModalContent>
           <ModalHeader>History</ModalHeader>
           <ModalBody>
-            <div className="space-y-2">
+            <div
+              className="space-y-2 overflow-y-scroll"
+              style={{ maxHeight: "calc(100vh - 30rem)" }}
+            >
               {taskHistory
                 .slice()
                 .sort(
@@ -606,10 +609,13 @@ const TodoList: React.FC = () => {
                 ))}
             </div>
             <div
-              className="mt-4 cursor-pointer bg-gray-700 p-2 rounded-2xl"
+              className="mt-4 cursor-pointer bg-gray-700 p-2 rounded-2xl overflow-y-scroll"
+              style={{ maxHeight: "calc(100vh - 30rem)" }}
               onClick={() => handleHistoryClick(historyIndex)}
             >
-              <h4 className="font-medium">Tasks in this History (click to apply):</h4>
+              <h4 className="font-medium">
+                Tasks in this History (click to apply):
+              </h4>
               <ul className="list-disc pl-4">
                 {todosHistory.map((todo) => (
                   <li key={todo.id}>
