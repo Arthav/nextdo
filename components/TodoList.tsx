@@ -597,7 +597,7 @@ const TodoList: React.FC = () => {
                 .map((history, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 cursor-pointer"
+                    className="flex items-center gap-2"
                     onClick={() => handleHistoryDetail(index)}
                   >
                     <span className="font-medium">{index + 1}.</span>
@@ -609,7 +609,7 @@ const TodoList: React.FC = () => {
                 ))}
             </div>
             <div
-              className="mt-4 cursor-pointer bg-gray-700 p-2 rounded-2xl overflow-y-scroll"
+              className="mt-4 bg-gray-700 p-2 rounded-2xl overflow-y-scroll"
               style={{ maxHeight: "calc(100vh - 30rem)" }}
               onClick={() => handleHistoryClick(historyIndex)}
             >
