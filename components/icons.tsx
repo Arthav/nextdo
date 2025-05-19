@@ -235,6 +235,28 @@ export const TrashIcon = (props: IconSvgProps) => (
   </svg>
 );
 
+export const HistoryFileIcon: React.FC<IconSvgProps> = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}) => {
+  return (
+    <svg
+      height={size || height}
+      viewBox="0 0 24 24"
+      width={size || width}
+      {...props}
+    >
+      <path
+        d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3ZM19 5V19H5V5H19ZM12 7H13V12.586L15.707 14.707L14.293 16.121L11 12.828V7H12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};
+
+
 
 export const NextUILogo: React.FC<IconSvgProps> = (props) => {
   const { width, height = 40 } = props;

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Navbar as NextUINavbar } from "@nextui-org/navbar";
 import { Button } from "@nextui-org/button";
 import { Listbox, ListboxItem } from "@nextui-org/listbox";
-import { TrashIcon } from "@/components/icons";
+import { TrashIcon, HistoryFileIcon } from "@/components/icons";
 import { toast, Bounce, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -32,6 +32,8 @@ interface Todo {
 
 const TodoList: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [todosHistory, setTodosHistory] = useState<Todo[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(0);  
   const [task, setTask] = useState("");
   const [initPhase, setInitPhase] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -39,6 +41,10 @@ const TodoList: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Todo | null>(null);
   const isMultiline = task.split("\n").length > 1;
+  const [taskHistory, setTaskHistory] = useState<
+    { todos: Todo[]; datetime: string }[]
+  >([]);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Gemini API
   const [loading, setLoading] = useState(false);
@@ -96,6 +102,10 @@ const TodoList: React.FC = () => {
     const storedTodos = localStorage.getItem("todos");
     if (storedTodos) {
       setTodos(JSON.parse(storedTodos));
+    }
+    const storedTaskHistory = localStorage.getItem("taskHistory");
+    if (storedTaskHistory) {
+      setTaskHistory(JSON.parse(storedTaskHistory));
     }
     setInitPhase(false);
   }, []);
@@ -213,7 +223,40 @@ const TodoList: React.FC = () => {
     setIsModalVisible(true);
   };
 
+  const handleHistoryDetail = (index: number) => {
+    const sortedTaskHistory = [...taskHistory].sort(
+      (a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
+    );
+    const historyItem = sortedTaskHistory[index];
+    setTodosHistory(historyItem.todos);
+    setHistoryIndex(index);
+    setIsHistoryModalOpen(true);
+  };
+
+  const handleHistoryClick = (index: number) => {
+    const sortedTaskHistory = [...taskHistory].sort(
+      (a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
+    );
+    const historyItem = sortedTaskHistory[index];
+    if (
+      window.confirm(
+        `This action will replace all your current tasks with the ones from ${new Date(
+          historyItem.datetime
+        ).toLocaleString()}. Are you sure?`
+      )
+    ) {
+      setTodos(historyItem.todos);
+      setIsHistoryModalOpen(false);
+    }
+  };
+
   const handleClearAll = () => {
+    setTaskHistory([
+      ...taskHistory,
+      { todos, datetime: new Date().toISOString() },
+    ]);
+    localStorage.setItem("taskHistory", JSON.stringify(taskHistory));
+
     setTodos([]);
     setIsModalVisible(false);
   };
@@ -279,7 +322,6 @@ const TodoList: React.FC = () => {
 
   return (
     <div>
-      
       <ToastContainer />
       <NextUINavbar position="sticky" className="pt-8 sm:mb-0 pb-2">
         <div className="w-full max-w-[1024px] mx-auto px-4">
@@ -292,6 +334,14 @@ const TodoList: React.FC = () => {
                 aria-label="Clear all tasks"
               >
                 <TrashIcon size={20} />
+              </Button>
+              <Button
+                size="sm"
+                className="bg-gray-500 text-white h-12"
+                onPress={() => setIsHistoryModalOpen(true)}
+                aria-label="Revert to previous tasks"
+              >
+                <HistoryFileIcon size={20} />
               </Button>
               <textarea
                 id="todo-input"
@@ -324,17 +374,20 @@ const TodoList: React.FC = () => {
               <Button
                 onPress={() => {
                   if (!task) {
-                    toast.error("Please enter a task for a prompt for AI first", {
-                      position: "bottom-center",
-                      autoClose: 3000,
-                      hideProgressBar: false,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      progress: undefined,
-                      theme: "dark",
-                      transition: Bounce,
-                    });
+                    toast.error(
+                      "Please enter a task for a prompt for AI first",
+                      {
+                        position: "bottom-center",
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "dark",
+                        transition: Bounce,
+                      }
+                    );
                   } else {
                     generateTasksWithAI(task);
                   }
@@ -348,7 +401,6 @@ const TodoList: React.FC = () => {
               >
                 {loading ? "Generating..." : "Use AI"}
               </Button>
-
             </div>
           </div>
         </div>
@@ -362,7 +414,6 @@ const TodoList: React.FC = () => {
             >
               <div
                 style={{
-                  textDecoration: todo.completed ? "line-through" : "none",
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-word",
                 }}
@@ -519,6 +570,62 @@ const TodoList: React.FC = () => {
               aria-label="Cancel edit"
             >
               Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* History Modal */}
+      <Modal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        size="lg"
+      >
+        <ModalContent>
+          <ModalHeader>History</ModalHeader>
+          <ModalBody>
+            <div className="space-y-2">
+              {taskHistory
+                .slice()
+                .sort(
+                  (a, b) =>
+                    new Date(b.datetime).getTime() -
+                    new Date(a.datetime).getTime()
+                )
+                .map((history, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => handleHistoryDetail(index)}
+                  >
+                    <span className="font-medium">{index + 1}.</span>
+                    <span>{history.todos.length} tasks</span>
+                    <span className="text-gray-500 text-xs">
+                      - {new Date(history.datetime).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+            </div>
+            <div
+              className="mt-4 cursor-pointer bg-gray-700 p-2 rounded-2xl"
+              onClick={() => handleHistoryClick(historyIndex)}
+            >
+              <h4 className="font-medium">Tasks in this History (click to apply):</h4>
+              <ul className="list-disc pl-4">
+                {todosHistory.map((todo) => (
+                  <li key={todo.id}>
+                    {todo.text} {todo.completed ? "(Completed)" : "(Pending)"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="danger"
+              variant="light"
+              onClick={() => setIsHistoryModalOpen(false)}
+            >
+              Close
             </Button>
           </ModalFooter>
         </ModalContent>
