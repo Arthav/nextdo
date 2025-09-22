@@ -49,6 +49,10 @@ const TodoList: React.FC = () => {
   // Gemini API
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    localStorage.setItem("taskHistory", JSON.stringify(taskHistory));
+  }, [taskHistory]);
+
   const generateTasksWithAI = async (prompt: string) => {
     setLoading(true);
     try {
@@ -250,12 +254,11 @@ const TodoList: React.FC = () => {
     }
   };
 
-  const handleClearAll = () => {
-    setTaskHistory([
+  const handleClearAll = async () => {
+    await setTaskHistory([
       ...taskHistory,
       { todos, datetime: new Date().toISOString() },
     ]);
-    localStorage.setItem("taskHistory", JSON.stringify(taskHistory));
 
     setTodos([]);
     setIsModalVisible(false);
@@ -445,6 +448,7 @@ const TodoList: React.FC = () => {
                   color="warning"
                   onPress={() => deleteTask(todo.id)}
                   aria-label="Delete task"
+                  title="Delete task"
                 >
                   Delete
                 </Button>
