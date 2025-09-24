@@ -51,15 +51,19 @@ export default function RootLayout({
               {children}
             </main>
             <footer className="w-full flex items-center justify-center py-3">
-              <Link
+              {/* <Link
                 isExternal
                 className="flex items-center gap-1 text-current"
                 href="http://wa.me/6282233857510?text=Halo,%20saya%20mau%20request%20feature"
                 title="Contact My Whatsapp"
               >
                 <FontAwesomeIcon icon={faWhatsapp} className="text-xs" />{" "}
-                <span className="text-default-600 no-wrap">Contact Me</span>
-              </Link>
+                <span className="text-default-600 no-wrap">Contact</span>
+              </Link> */}
+              <p className="text-center text-xs">
+                Made with ❤ by CB
+              </p>
+
             </footer>
           </div>
         </Providers>
