@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life in Fuchsia Glow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        darker: '#020617'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .cell {
+            transition: all 0.2s ease;
+            aspect-ratio: 1/1;
+        }
+        .game-container {
+            touch-action: manipulation;
+        }
+        @media (max-width: 640px) {
+            .controls {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-darker text-gray-200 min-h-screen flex flex-col">
+    <header class="bg-dark py-6 px-4 shadow-lg">
+        <div class="container mx-auto">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-amber-500">
+                Game of Life
+            </h1>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
+        <div class="w-full max-w-4xl">
+            <div class="game-container bg-dark rounded-xl p-4 shadow-2xl mb-6">
+                <div id="grid" class="grid gap-0.5 w-full overflow-auto" style="max-height: 70vh;"></div>
+            </div>
+
+            <div class="controls flex flex-wrap justify-center gap-4 mb-6">
+                <div class="flex items-center gap-2">
+                    <button id="start" class="bg-fuchsia-600 hover:bg-fuchsia-700 px-4 py-2 rounded-lg font-medium transition">
+                        <i data-feather="play" class="inline mr-1"></i> Start
+                    </button>
+                    <button id="pause" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg font-medium transition">
+                        <i data-feather="pause" class="inline mr-1"></i> Pause
+                    </button>
+                    <button id="reset" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition">
+                        <i data-feather="refresh-cw" class="inline mr-1"></i> Reset
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button id="randomize" class="bg-fuchsia-600 hover:bg-fuchsia-700 px-4 py-2 rounded-lg font-medium transition">
+                        <i data-feather="shuffle" class="inline mr-1"></i> Randomize
+                    </button>
+                    <button id="clear" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg font-medium transition">
+                        <i data-feather="trash-2" class="inline mr-1"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+                <div class="text-xl">
+                    Generation: <span id="generation" class="font-bold text-fuchsia-400">0</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="whitespace-nowrap">Speed:</span>
+                    <input id="speed" type="range" min="1" max="10" value="5" class="w-32 accent-fuchsia-500">
+                    <span id="speed-value" class="w-8 text-center">5x</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="whitespace-nowrap">Grid Size:</span>
+                    <select id="grid-size" class="bg-dark border border-gray-700 rounded px-2 py-1">
+                        <option value="30">30x30</option>
+                        <option value="40">40x40</option>
+                        <option value="50" selected>50x50</option>
+                        <option value="60">60x60</option>
+                        <option value="70">70x70</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-dark/50 p-4 rounded-lg border border-gray-700">
+                <h2 class="text-xl font-semibold mb-2 text-fuchsia-400 flex items-center">
+                    <i data-feather="info" class="mr-2"></i> Conway's Game of Life Rules
+                </h2>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>Any live cell with fewer than two live neighbors dies (underpopulation).</li>
+                    <li>Any live cell with two or three live neighbors lives on to the next generation.</li>
+                    <li>Any live cell with more than three live neighbors dies (overpopulation).</li>
+                    <li>Any dead cell with exactly three live neighbors becomes a live cell (reproduction).</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-dark py-4 px-4 text-center text-gray-400 text-sm">
+        <p>Click cells to toggle them. Drag to paint multiple cells.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            
+            // Game state
+            let grid = [];
+            let nextGrid = [];
+            let rows = 50;
+            let cols = 50;
+            let generation = 0;
+            let isRunning = false;
+            let speed = 5;
+            let intervalId = null;
+            let isMouseDown = false;
+            let paintMode = 'add'; // 'add' or 'remove'
+            
+            // DOM elements
+            const gridElement = document.getElementById('grid');
+            const generationElement = document.getElementById('generation');
+            const speedSlider = document.getElementById('speed');
+            const speedValue = document.getElementById('speed-value');
+            const gridSizeSelect = document.getElementById('grid-size');
+            
+            // Initialize the game
+            function initGrid() {
+                grid = Array(rows).fill().map(() => Array(cols).fill(0));
+                nextGrid = Array(rows).fill().map(() => Array(cols).fill(0));
+                renderGrid();
+            }
+            
+            // Render the grid
+            function renderGrid() {
+                gridElement.innerHTML = '';
+                gridElement.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = `cell ${grid[i][j] ? 'bg-fuchsia-500' : 'bg-dark'} hover:bg-amber-500/30`;
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        
+                        cell.addEventListener('mousedown', (e) => {
+                            isMouseDown = true;
+                            paintMode = grid[i][j] ? 'remove' : 'add';
+                            toggleCell(i, j);
+                            e.preventDefault(); // Prevent text selection
+                        });
+                        
+                        cell.addEventListener('mouseenter', () => {
+                            if (isMouseDown) {
+                                toggleCell(i, j, paintMode);
+                            } else {
+                                cell.classList.add('bg-amber-500/50');
+                            }
+                        });
+                        
+                        cell.addEventListener('mouseleave', () => {
+                            if (!isMouseDown) {
+                                cell.classList.remove('bg-amber-500/50');
+                            }
+                        });
+                        
+                        gridElement.appendChild(cell);
+                    }
+                }
+            }
+            
+            // Toggle cell state
+            function toggleCell(row, col, mode = null) {
+                if (mode === 'add' || (mode === null && grid[row][col] === 0)) {
+                    grid[row][col] = 1;
+                } else {
+                    grid[row][col] = 0;
+                }
+                
+                // Update the visual
+                const cellIndex = row * cols + col;
+                const cell = gridElement.children[cellIndex];
+                cell.classList.toggle('bg-fuchsia-500', grid[row][col] === 1);
+                cell.classList.toggle('bg-dark', grid[row][col] === 0);
+            }
+            
+            // Compute next generation
+            function computeNextGeneration() {
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const neighbors = countNeighbors(i, j);
+                        
+                        // Apply Conway's rules
+                        if (grid[i][j] === 1) {
+                            nextGrid[i][j] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+                        } else {
+                            nextGrid[i][j] = (neighbors === 3) ? 1 : 0;
+                        }
+                    }
+                }
+                
+                // Swap grids
+                [grid, nextGrid] = [nextGrid, grid];
+                generation++;
+                generationElement.textContent = generation;
+                renderGrid();
+            }
+            
+            // Count live neighbors
+            function countNeighbors(row, col) {
+                let count = 0;
+                
+                for (let i = -1; i <= 1; i++) {
+                    for (let j = -1; j <= 1; j++) {
+                        if (i === 0 && j === 0) continue;
+                        
+                        const r = row + i;
+                        const c = col + j;
+                        
+                        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                            count += grid[r][c];
+                        }
+                    }
+                }
+                
+                return count;
+            }
+            
+            // Start the simulation
+            function startSimulation() {
+                if (!isRunning) {
+                    isRunning = true;
+                    intervalId = setInterval(computeNextGeneration, 1000 / speed);
+                }
+            }
+            
+            // Pause the simulation
+            function pauseSimulation() {
+                if (isRunning) {
+                    isRunning = false;
+                    clearInterval(intervalId);
+                }
+            }
+            
+            // Reset the simulation
+            function resetSimulation() {
+                pauseSimulation();
+                generation = 0;
+                generationElement.textContent = generation;
+                initGrid();
+            }
+            
+            // Randomize the grid
+            function randomizeGrid() {
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        grid[i][j] = Math.random() > 0.7 ? 1 : 0;
+                    }
+                }
+                renderGrid();
+            }
+            
+            // Clear the grid
+            function clearGrid() {
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        grid[i][j] = 0;
+                    }
+                }
+                renderGrid();
+            }
+            
+            // Event listeners for controls
+            document.getElementById('start').addEventListener('click', startSimulation);
+            document.getElementById('pause').addEventListener('click', pauseSimulation);
+            document.getElementById('reset').addEventListener('click', resetSimulation);
+            document.getElementById('randomize').addEventListener('click', randomizeGrid);
+            document.getElementById('clear').addEventListener('click', clearGrid);
+            
+            speedSlider.addEventListener('input', () => {
+                speed = parseInt(speedSlider.value);
+                speedValue.textContent = `${speed}x`;
+                
+                if (isRunning) {
+                    pauseSimulation();
+                    startSimulation();
+                }
+            });
+            
+            gridSizeSelect.addEventListener('change', () => {
+                rows = parseInt(gridSizeSelect.value);
+                cols = parseInt(gridSizeSelect.value);
+                resetSimulation();
+            });
+            
+            // Handle mouse up anywhere on document
+            document.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+            
+            // Prevent text selection when dragging
+            document.addEventListener('selectstart', (e) => {
+                if (isMouseDown) e.preventDefault();
+            });
+            
+            // Initialize the grid
+            initGrid();
+        });
+    </script>
+</body>
+</html>
