@@ -20,6 +20,12 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { instruction } from "@/components/constant/instruction";
 import { HistoryFileIcon, TrashIcon } from "@/components/icons";
+import {
+  APP_STORAGE_KEYS,
+  getStoredValue,
+  migrateLegacyLocalStorageData,
+  setStoredValue,
+} from "@/lib/app-storage";
 import "@/styles/driver-js.css";
 
 interface Todo {
@@ -90,33 +96,40 @@ export default function TodoList() {
   const dayLabel = formatDay();
 
   useEffect(() => {
-    const storedTodos = localStorage.getItem("todos");
-    const storedTaskHistory = localStorage.getItem("taskHistory");
-    const storedShowTour = localStorage.getItem("tourShown");
+    const loadStoredData = async () => {
+      await migrateLegacyLocalStorageData();
+      const [storedTodos, storedTaskHistory, storedShowTour] = await Promise.all([
+        getStoredValue<Todo[]>(APP_STORAGE_KEYS.todos),
+        getStoredValue<TaskHistoryEntry[]>(APP_STORAGE_KEYS.taskHistory),
+        getStoredValue<boolean>(APP_STORAGE_KEYS.tourShown),
+      ]);
 
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
-    }
+      if (storedTodos) {
+        setTodos(storedTodos);
+      }
 
-    if (storedTaskHistory) {
-      setTaskHistory(JSON.parse(storedTaskHistory));
-    }
+      if (storedTaskHistory) {
+        setTaskHistory(storedTaskHistory);
+      }
 
-    if (storedShowTour === null) {
-      setShowTour(true);
-    }
+      if (!storedShowTour) {
+        setShowTour(true);
+      }
 
-    setInitPhase(false);
+      setInitPhase(false);
+    };
+
+    void loadStoredData();
   }, []);
 
   useEffect(() => {
     if (initPhase) return;
-    localStorage.setItem("todos", JSON.stringify(todos));
+    void setStoredValue(APP_STORAGE_KEYS.todos, todos);
   }, [initPhase, todos]);
 
   useEffect(() => {
     if (initPhase) return;
-    localStorage.setItem("taskHistory", JSON.stringify(taskHistory));
+    void setStoredValue(APP_STORAGE_KEYS.taskHistory, taskHistory);
   }, [initPhase, taskHistory]);
 
   useEffect(() => {
@@ -167,7 +180,7 @@ export default function TodoList() {
 
     const timer = window.setTimeout(() => {
       driverObj.drive();
-      localStorage.setItem("tourShown", "true");
+      void setStoredValue(APP_STORAGE_KEYS.tourShown, true);
       setShowTour(false);
     }, 500);
 
