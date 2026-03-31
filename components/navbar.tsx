@@ -1,70 +1,44 @@
 import {
   Navbar as NextUINavbar,
-  NavbarContent,
-  NavbarMenu,
-  NavbarMenuToggle,
   NavbarBrand,
+  NavbarContent,
   NavbarItem,
-  NavbarMenuItem,
 } from "@nextui-org/navbar";
-import { Button } from "@nextui-org/button";
-import { Kbd } from "@nextui-org/kbd";
-import { Link } from "@nextui-org/link";
-import { Input } from "@nextui-org/input";
-import { link as linkStyles } from "@nextui-org/theme";
 import NextLink from "next/link";
-import clsx from "clsx";
 
-import { siteConfig } from "@/config/site";
+import { Logo } from "@/components/icons";
 import { ThemeSwitch } from "@/components/theme-switch";
-import {
-  TwitterIcon,
-  GithubIcon,
-  DiscordIcon,
-  HeartFilledIcon,
-  SearchIcon,
-  Logo,
-} from "@/components/icons";
 
 export const Navbar = () => {
-  const searchInput = (
-    <Input
-      aria-label="Search"
-      classNames={{
-        inputWrapper: "bg-default-100",
-        input: "text-sm",
-      }}
-      endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
-          K
-        </Kbd>
-      }
-      labelPlacement="outside"
-      placeholder="Search..."
-      startContent={
-        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-      }
-      type="search"
-    />
-  );
-
   return (
-    <NextUINavbar maxWidth="xl" position="sticky">
-      <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
-        <NavbarBrand as="li" className="gap-3 max-w-fit">
-          <NextLink className="flex justify-start items-center gap-1" href="/">
-            <Logo />
-            <p className="font-bold text-inherit">Todo list / Notulen</p>
+    <NextUINavbar
+      maxWidth="xl"
+      position="sticky"
+      className="border-b border-black/5 bg-[rgba(245,241,234,0.88)] backdrop-blur-lg dark:border-white/10 dark:bg-[rgba(16,20,24,0.9)]"
+    >
+      <NavbarContent className="basis-full" justify="start">
+        <NavbarBrand as="li" className="max-w-fit gap-3">
+          <NextLink className="flex items-center gap-3" href="/">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/10 bg-white/80 text-[#1f1a16] dark:border-white/10 dark:bg-white/5 dark:text-[#eef1f3]">
+              <Logo size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold tracking-tight text-[#1f1a16] dark:text-[#eef1f3]">
+                Nextdo
+              </p>
+              <p className="text-[0.62rem] uppercase tracking-[0.22em] text-[#74685d] dark:text-[#9ba5ad]">
+                Today&apos;s planner
+              </p>
+            </div>
           </NextLink>
         </NavbarBrand>
       </NavbarContent>
 
-      {/* <NavbarContent
-        className="hidden sm:flex basis-1/5 sm:basis-full"
-        justify="end"
-      >
-        <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
-      </NavbarContent> */}
+      <NavbarContent justify="end">
+        <NavbarItem>
+          <ThemeSwitch className="rounded-full border border-black/10 bg-white/80 p-2 shadow-sm dark:border-white/10 dark:bg-white/5" />
+        </NavbarItem>
+      </NavbarContent>
     </NextUINavbar>
   );
 };

@@ -1,3 +1,117 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --app-bg: #f5f1ea;
+    --app-ink: #1f1a16;
+    --app-muted: #74685d;
+    --panel-bg: rgba(255, 255, 255, 0.84);
+    --panel-border: rgba(49, 39, 30, 0.08);
+    --panel-shadow: 0 10px 30px rgba(42, 34, 28, 0.05);
+  }
+
+  .dark {
+    --app-bg: #101418;
+    --app-ink: #eef1f3;
+    --app-muted: #9ba5ad;
+    --panel-bg: rgba(22, 27, 33, 0.88);
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --panel-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--app-bg);
+    color: var(--app-ink);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 97, 79, 0.32) transparent;
+  }
+
+  ::selection {
+    background: rgba(64, 124, 105, 0.18);
+    color: var(--app-ink);
+  }
+}
+
+@layer components {
+  .surface-panel {
+    border-radius: 22px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    box-shadow: var(--panel-shadow);
+    backdrop-filter: blur(14px);
+  }
+
+  .planner-textarea {
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid rgba(89, 74, 61, 0.12);
+    background: rgba(255, 255, 255, 0.88);
+    padding: 0.95rem 1rem;
+    color: var(--app-ink);
+    resize: vertical;
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease;
+  }
+
+  .planner-textarea::placeholder {
+    color: rgba(116, 104, 93, 0.85);
+  }
+
+  .planner-textarea:focus {
+    outline: none;
+    border-color: rgba(64, 124, 105, 0.34);
+    box-shadow: 0 0 0 3px rgba(64, 124, 105, 0.1);
+  }
+
+  .dark .planner-textarea {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(13, 17, 22, 0.68);
+  }
+
+  .dark .planner-textarea::placeholder {
+    color: rgba(155, 165, 173, 0.8);
+  }
+
+  .todo-card {
+    border-radius: 18px;
+    border: 1px solid rgba(49, 39, 30, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 1rem;
+    box-shadow: 0 4px 18px rgba(42, 34, 28, 0.04);
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease;
+  }
+
+  .todo-card:hover {
+    border-color: rgba(64, 124, 105, 0.18);
+    box-shadow: 0 8px 24px rgba(42, 34, 28, 0.06);
+  }
+
+  .todo-card.complete {
+    background: rgba(244, 248, 246, 0.96);
+    border-color: rgba(64, 124, 105, 0.14);
+  }
+
+  .dark .todo-card {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(19, 24, 30, 0.96);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  }
+
+  .dark .todo-card.complete {
+    background: rgba(19, 30, 28, 0.96);
+    border-color: rgba(97, 170, 146, 0.16);
+  }
+}

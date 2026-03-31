@@ -1,16 +1,12 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
-import { Link } from "@nextui-org/link";
 import clsx from "clsx";
 
-import { Providers } from "./providers";
-
-import { siteConfig } from "@/config/site";
-import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
+import { siteConfig } from "@/config/site";
+import { fontDisplay, fontSans } from "@/config/fonts";
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
@@ -25,8 +21,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f1ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#101418" },
   ],
 };
 
@@ -40,30 +36,22 @@ export default function RootLayout({
       <head />
       <body
         className={clsx(
-          "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable
+          "min-h-screen font-sans antialiased",
+          fontSans.variable,
+          fontDisplay.variable
         )}
       >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="relative flex flex-col h-screen">
+        <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
+          <div className="relative flex min-h-screen flex-col">
             <Navbar />
-            <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
+            <main className="container mx-auto flex w-full max-w-5xl flex-1 px-4 pb-8 pt-4 sm:px-5 sm:pb-10 sm:pt-5">
               {children}
             </main>
-            <footer className="w-full flex items-center justify-center py-3">
-              {/* <Link
-                isExternal
-                className="flex items-center gap-1 text-current"
-                href="http://wa.me/6282233857510?text=Halo,%20saya%20mau%20request%20feature"
-                title="Contact My Whatsapp"
-              >
-                <FontAwesomeIcon icon={faWhatsapp} className="text-xs" />{" "}
-                <span className="text-default-600 no-wrap">Contact</span>
-              </Link> */}
-              <p className="text-center text-xs">
-                Made with ❤ by CB
-              </p>
-
+            <footer className="px-4 pb-4 sm:px-5">
+              <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 border-t border-black/[0.08] pt-3 text-[0.68rem] uppercase tracking-[0.22em] text-[#74685d] dark:border-white/10 dark:text-[#9ba5ad]">
+                <p>CB</p>
+                <p>{siteConfig.name}</p>
+              </div>
             </footer>
           </div>
         </Providers>

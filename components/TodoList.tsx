@@ -1,28 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Navbar as NextUINavbar } from "@nextui-org/navbar";
-import { Button } from "@nextui-org/button";
-import { Listbox, ListboxItem } from "@nextui-org/listbox";
-import { TrashIcon, HistoryFileIcon } from "@/components/icons";
-import { toast, Bounce, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalContent,
-} from "@nextui-org/modal";
+import clsx from "clsx";
 import confetti from "canvas-confetti";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
 import { driver } from "driver.js";
+import { useEffect, useState } from "react";
+import { Bounce, ToastContainer, toast } from "react-toastify";
+import { Button } from "@nextui-org/button";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from "@nextui-org/modal";
+
 import "driver.js/dist/driver.css";
-import "@/styles/driver-js.css";
+import "react-toastify/dist/ReactToastify.css";
 
 import { instruction } from "@/components/constant/instruction";
+import { HistoryFileIcon, TrashIcon } from "@/components/icons";
+import "@/styles/driver-js.css";
 
 interface Todo {
   id: number;
@@ -30,35 +28,179 @@ interface Todo {
   completed: boolean;
 }
 
-const TodoList: React.FC = () => {
+interface TaskHistoryEntry {
+  todos: Todo[];
+  datetime: string;
+}
+
+const cloneTodos = (todos: Todo[]) => todos.map((todo) => ({ ...todo }));
+
+const sortTaskHistory = (history: TaskHistoryEntry[]) =>
+  [...history].sort(
+    (a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
+  );
+
+const formatDateTime = (value: number | string) =>
+  new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+
+const formatDay = () =>
+  new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date());
+
+const toastOptions = {
+  autoClose: 2600,
+  closeOnClick: true,
+  draggable: true,
+  pauseOnHover: true,
+  position: "bottom-right" as const,
+  theme: "colored" as const,
+  transition: Bounce,
+};
+
+export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [todosHistory, setTodosHistory] = useState<Todo[]>([]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
+  const [taskHistory, setTaskHistory] = useState<TaskHistoryEntry[]>([]);
   const [task, setTask] = useState("");
+  const [showTour, setShowTour] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [initPhase, setInitPhase] = useState(true);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Todo | null>(null);
-  const isMultiline = task.split("\n").length > 1;
-  const [taskHistory, setTaskHistory] = useState<
-    { todos: Todo[]; datetime: string }[]
-  >([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Todo | null>(null);
+  const [historyPreview, setHistoryPreview] = useState<TaskHistoryEntry | null>(
+    null
+  );
 
-  // Gemini API
-  const [loading, setLoading] = useState(false);
+  const sortedTaskHistory = sortTaskHistory(taskHistory);
+  const completedCount = todos.filter((todo) => todo.completed).length;
+  const pendingCount = todos.length - completedCount;
+  const completionRate = todos.length
+    ? Math.round((completedCount / todos.length) * 100)
+    : 0;
+  const dayLabel = formatDay();
 
   useEffect(() => {
+    const storedTodos = localStorage.getItem("todos");
+    const storedTaskHistory = localStorage.getItem("taskHistory");
+    const storedShowTour = localStorage.getItem("tourShown");
+
+    if (storedTodos) {
+      setTodos(JSON.parse(storedTodos));
+    }
+
+    if (storedTaskHistory) {
+      setTaskHistory(JSON.parse(storedTaskHistory));
+    }
+
+    if (storedShowTour === null) {
+      setShowTour(true);
+    }
+
+    setInitPhase(false);
+  }, []);
+
+  useEffect(() => {
+    if (initPhase) return;
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [initPhase, todos]);
+
+  useEffect(() => {
+    if (initPhase) return;
     localStorage.setItem("taskHistory", JSON.stringify(taskHistory));
-  }, [taskHistory]);
+  }, [initPhase, taskHistory]);
+
+  useEffect(() => {
+    if (!showTour) return;
+
+    const driverObj = driver({
+      popoverClass: "driverjs-theme",
+      showProgress: true,
+      steps: [
+        {
+          element: "#todo-input",
+          popover: {
+            title: "Input",
+            description: "Write a quick thought or a rough task here.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: "#add-task-button",
+          popover: {
+            title: "Add",
+            description: "Turn the draft into a task card.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: "#export-button",
+          popover: {
+            title: "Export",
+            description: "Copy your list as plain text or HTML.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: "#todo-list",
+          popover: {
+            title: "List",
+            description: "Track progress, edit wording, or delete tasks here.",
+            side: "top",
+            align: "start",
+          },
+        },
+      ],
+    });
+
+    const timer = window.setTimeout(() => {
+      driverObj.drive();
+      localStorage.setItem("tourShown", "true");
+      setShowTour(false);
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [showTour]);
+
+  const notifyError = (message: string) => toast.error(message, toastOptions);
+
+  const notifySuccess = (message: string) =>
+    toast.success(message, toastOptions);
+
+  const addTask = () => {
+    const nextTask = task.trim();
+
+    if (!nextTask) {
+      return;
+    }
+
+    setTodos((prevTodos) => [
+      ...prevTodos,
+      { id: Date.now(), text: nextTask, completed: false },
+    ]);
+    setTask("");
+  };
 
   const generateTasksWithAI = async (prompt: string) => {
     setLoading(true);
+
     try {
       const geminiKey = process.env.NEXT_PUBLIC_GEMINI_KEY;
+
       if (!geminiKey) {
-        throw new Error("Missing API Key");
+        throw new Error("Missing NEXT_PUBLIC_GEMINI_KEY");
       }
 
       const genAI = new GoogleGenerativeAI(geminiKey);
@@ -66,11 +208,7 @@ const TodoList: React.FC = () => {
         model: "gemini-1.5-flash",
         systemInstruction: {
           role: "system",
-          parts: [
-            {
-              text: instruction.todoList,
-            },
-          ],
+          parts: [{ text: instruction.todoList }],
         },
         generationConfig: {
           temperature: 0.5,
@@ -84,205 +222,107 @@ const TodoList: React.FC = () => {
       const aiTasks = result.response
         .text()
         .split("\n")
-        .map((task, index) => ({
+        .map((line, index) => ({
           id: Date.now() + index,
-          text: task.replace(/^\d+\.\s*/, "").trim(),
+          text: line.replace(/^\d+\.\s*/, "").trim(),
           completed: false,
         }))
-        .filter((task) => task.text !== "");
+        .filter((generatedTask) => generatedTask.text !== "");
+
+      if (!aiTasks.length) {
+        notifyError("AI did not return any usable tasks.");
+        return;
+      }
 
       setTodos((prevTodos) => [...prevTodos, ...aiTasks]);
+      setTask("");
+      notifySuccess("AI suggestions added.");
     } catch (error) {
       console.error("Error generating tasks with AI:", error);
+      notifyError("AI suggestions failed. Check your Gemini key.");
     } finally {
       setLoading(false);
-      setTask("");
-    }
-  };
-
-  const [showTour, setShowTour] = useState(false);
-
-  useEffect(() => {
-    const storedTodos = localStorage.getItem("todos");
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
-    }
-    const storedTaskHistory = localStorage.getItem("taskHistory");
-    if (storedTaskHistory) {
-      setTaskHistory(JSON.parse(storedTaskHistory));
-    }
-    setInitPhase(false);
-  }, []);
-
-  useEffect(() => {
-    const storedShowTour = localStorage.getItem("tourShown");
-    if (storedShowTour === null) {
-      setShowTour(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showTour) {
-      const driverObj = driver({
-        popoverClass: "driverjs-theme",
-        showProgress: true,
-        steps: [
-          {
-            element: "#todo-input",
-            popover: {
-              title: "Input Field",
-              description:
-                "Type a todo item and press CTRL + Enter to add it to the list.",
-              side: "left",
-              align: "start",
-            },
-          },
-          {
-            element: "#add-task-button",
-            popover: {
-              title: "Add Task Button",
-              description:
-                "or use this button to add the typed task to the list.",
-              side: "right",
-              align: "start",
-            },
-          },
-          {
-            element: "#export-button",
-            popover: {
-              title: "Export",
-              description:
-                "You can export your todos to a copyable text by clicking this button.",
-              side: "top",
-              align: "start",
-            },
-          },
-          {
-            element: "#todo-list",
-            popover: {
-              title: "Task List",
-              description:
-                "Here is the list of your tasks. You can click on them to mark them as completed.",
-              side: "top",
-              align: "start",
-            },
-          },
-          {
-            popover: {
-              title: "That's it!",
-              description:
-                "And that is all, go ahead use the app to manage your tasks.",
-            },
-          },
-        ],
-      });
-
-      // Small delay to ensure DOM elements are rendered
-      setTimeout(() => {
-        driverObj.drive();
-      }, 500);
-
-      // Save tour state to localStorage
-      localStorage.setItem("tourShown", "true");
-      setShowTour(false);
-    }
-  }, [showTour]);
-
-  useEffect(() => {
-    if (initPhase) return;
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]);
-
-  const addTask = () => {
-    if (task.trim()) {
-      setTodos([...todos, { id: Date.now(), text: task, completed: false }]);
-      setTask("");
     }
   };
 
   const toggleTask = (id: number) => {
-    setTodos((prevTodos) => {
-      const updatedTodos = prevTodos.map((todo) => {
-        if (todo.id === id) {
-          if (!todo.completed) {
-            confetti({
-              particleCount: 100,
-              spread: 70,
-              origin: { y: 0.6 },
-            });
-          }
-          return { ...todo, completed: !todo.completed };
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) => {
+        if (todo.id !== id) {
+          return todo;
         }
-        return todo;
-      });
-      return updatedTodos;
-    });
+
+        if (!todo.completed) {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        }
+
+        return { ...todo, completed: !todo.completed };
+      })
+    );
   };
 
   const deleteTask = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+    setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
   };
 
-  const confirmClearAllTasks = () => {
-    setIsModalVisible(true);
+  const clearAllTasks = () => {
+    if (todos.length) {
+      setTaskHistory((prevHistory) => [
+        ...prevHistory,
+        {
+          todos: cloneTodos(todos),
+          datetime: new Date().toISOString(),
+        },
+      ]);
+    }
+
+    setTodos([]);
+    setIsClearModalOpen(false);
+    notifySuccess("List cleared and saved to history.");
   };
 
-  const handleHistoryDetail = (index: number) => {
-    const sortedTaskHistory = [...taskHistory].sort(
-      (a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
-    );
-    const historyItem = sortedTaskHistory[index];
-    setTodosHistory(historyItem.todos);
-    setHistoryIndex(index);
+  const openHistoryModal = () => {
+    setHistoryPreview(sortedTaskHistory[0] ?? null);
     setIsHistoryModalOpen(true);
   };
 
-  const handleHistoryClick = (index: number) => {
-    const sortedTaskHistory = [...taskHistory].sort(
-      (a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
-    );
-    const historyItem = sortedTaskHistory[index];
-    if (
-      window.confirm(
-        `This action will replace all your current tasks with the ones from ${new Date(
-          historyItem.datetime
-        ).toLocaleString()}. Are you sure?`
+  const restoreHistory = () => {
+    if (!historyPreview) {
+      return;
+    }
+
+    setTodos(cloneTodos(historyPreview.todos));
+    setIsHistoryModalOpen(false);
+    notifySuccess("Snapshot restored.");
+  };
+
+  const saveEditedTask = () => {
+    if (!editingTask) {
+      return;
+    }
+
+    const nextText = editingTask.text.trim();
+
+    if (!nextText) {
+      notifyError("Task text cannot be empty.");
+      return;
+    }
+
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === editingTask.id ? { ...editingTask, text: nextText } : todo
       )
-    ) {
-      setTodos(historyItem.todos);
-      setIsHistoryModalOpen(false);
-    }
+    );
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    notifySuccess("Task updated.");
   };
 
-  const handleClearAll = async () => {
-    await setTaskHistory([
-      ...taskHistory,
-      { todos, datetime: new Date().toISOString() },
-    ]);
-
-    setTodos([]);
-    setIsModalVisible(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      addTask();
-    }
-  };
-
-  const handleKeyPressEdit = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      saveEditedTask();
-    }
-  };
-
-  const handleExport = () => {
-    setIsExportModalOpen(true);
-  };
-
-  const copyToClipboard = () => {
+  const copyPlainText = async () => {
     const formattedTasks = todos
       .map(
         (todo, index) =>
@@ -290,12 +330,12 @@ const TodoList: React.FC = () => {
       )
       .join("\n");
 
-    navigator.clipboard.writeText(formattedTasks).then(() => {
-      setIsExportModalOpen(false);
-    });
+    await navigator.clipboard.writeText(formattedTasks);
+    setIsExportModalOpen(false);
+    notifySuccess("Plain text copied.");
   };
 
-  const copyToClipboardHtml = () => {
+  const copyHtml = async () => {
     const formattedTasks = `<ol>\n${todos
       .map(
         (todo) =>
@@ -303,237 +343,268 @@ const TodoList: React.FC = () => {
       )
       .join("\n")}\n</ol>`;
 
-    navigator.clipboard.writeText(formattedTasks).then(() => {
-      setIsExportModalOpen(false);
-    });
-  };
-
-  const handleEditTask = (todo: Todo) => {
-    setEditingTask(todo);
-    setIsEditModalOpen(true);
-  };
-
-  const saveEditedTask = () => {
-    if (editingTask) {
-      setTodos(
-        todos.map((todo) => (todo.id === editingTask.id ? editingTask : todo))
-      );
-      setIsEditModalOpen(false);
-      setEditingTask(null);
-    }
+    await navigator.clipboard.writeText(formattedTasks);
+    setIsExportModalOpen(false);
+    notifySuccess("HTML copied.");
   };
 
   return (
-    <div>
-      <ToastContainer />
-      <NextUINavbar position="sticky" className="pt-8 sm:mb-0 pb-2">
-        <div className="w-full max-w-[1024px] mx-auto px-4">
-          <div className="flex flex-col md:flex-row gap-2 mb-8">
-            <div className="flex gap-2 w-full">
-              <Button
-                size="sm"
-                className="bg-red-500 text-white h-12"
-                onPress={confirmClearAllTasks}
-                aria-label="Clear all tasks"
-              >
-                <TrashIcon size={20} />
-              </Button>
-              <Button
-                size="sm"
-                className="bg-gray-500 text-white h-12"
-                onPress={() => setIsHistoryModalOpen(true)}
-                aria-label="Revert to previous tasks"
-              >
-                <HistoryFileIcon size={20} />
-              </Button>
-              <textarea
-                id="todo-input"
-                value={task}
-                onChange={(e) => setTask(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Add a new task"
-                aria-label="Add a new task"
-                className={`w-full rounded-2xl p-2 resize-none ${
-                  isMultiline ? "h-24" : "h-12"
-                }`}
-              />
-            </div>{" "}
-            <div className="flex gap-2 w-full md:w-auto justify-end">
-              <Button
-                id="add-task-button"
-                className="h-12 flex-1 md:flex-none"
-                onPress={addTask}
-                aria-label="Add task"
-              >
-                Add Task
-              </Button>
-              <Button
-                id="export-button"
-                onClick={handleExport}
-                className="bg-purple-600 text-white hover:bg-purple-700 h-12 flex-1 md:flex-none"
-              >
-                Export
-              </Button>
-              <Button
-                onPress={() => {
-                  if (!task) {
-                    toast.error(
-                      "Please enter a task for a prompt for AI first",
-                      {
-                        position: "bottom-center",
-                        autoClose: 3000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        progress: undefined,
-                        theme: "dark",
-                        transition: Bounce,
-                      }
-                    );
-                  } else {
-                    generateTasksWithAI(task);
-                  }
-                }}
-                disabled={loading}
-                className={
-                  task
-                    ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white h-12 flex-1 md:flex-none"
-                    : "bg-gray-500 text-white h-12 flex-1 md:flex-none"
-                }
-              >
-                {loading ? "Generating..." : "Use AI"}
-              </Button>
+    <div className="mx-auto w-full">
+      <ToastContainer newestOnTop />
+
+      <section className="surface-panel p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[0.64rem] uppercase tracking-[0.28em] text-[#74685d] dark:text-[#9ba5ad]">
+              Today
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="font-display text-3xl leading-none text-[#1f1a16] sm:text-[2.45rem] dark:text-[#eef1f3]">
+                Tasks
+              </h1>
+              <span className="text-sm text-[#74685d] dark:text-[#9ba5ad]">
+                {dayLabel}
+              </span>
             </div>
+            <p className="mt-2 text-sm text-[#74685d] dark:text-[#9ba5ad]">
+              {pendingCount} open, {completedCount} done, {taskHistory.length} saved
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="flat"
+              className="bg-[#7a3f32] px-3 text-white"
+              isDisabled={!todos.length}
+              onPress={() => setIsClearModalOpen(true)}
+              aria-label="Clear all tasks"
+            >
+              <TrashIcon size={16} />
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              variant="flat"
+              className="border border-black/10 bg-white/80 px-3 text-[#1f1a16] dark:border-white/10 dark:bg-white/5 dark:text-[#eef1f3]"
+              isDisabled={!taskHistory.length}
+              onPress={openHistoryModal}
+              aria-label="Open history"
+            >
+              <HistoryFileIcon size={16} />
+              History
+            </Button>
           </div>
         </div>
-      </NextUINavbar>
-      <Listbox id="todo-list" aria-label="Todo list">
-        {todos.map((todo) => (
-          <ListboxItem key={todo.id} textValue={todo.text}>
-            <div
-              className="card p-4"
-              style={{ backgroundColor: todo.completed ? "#333" : "" }}
-            >
-              <div
-                style={{
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {todo.text}
-              </div>
-              <div className="text-xs text-gray-500">
-                created at: {new Date(todo.id).toLocaleString()}
-              </div>
 
-              <div className="flex justify-end gap-2">
-                <Button
-                  size="sm"
-                  onPress={() => toggleTask(todo.id)}
-                  aria-label="Mark task as done"
-                >
-                  {todo.completed ? "Undo" : "Done"}
-                </Button>
-                <Button
-                  size="sm"
-                  color="secondary"
-                  onPress={() => handleEditTask(todo)}
-                  aria-label="Edit task"
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  color="warning"
-                  onPress={() => deleteTask(todo.id)}
-                  aria-label="Delete task"
-                  title="Delete task"
-                >
-                  Delete
-                </Button>
-              </div>
+        <div className="mt-4">
+          <textarea
+            id="todo-input"
+            value={task}
+            onChange={(event) => setTask(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                addTask();
+              }
+            }}
+            placeholder="What needs to get done?"
+            aria-label="Add a new task"
+            className={clsx(
+              "planner-textarea",
+              task.includes("\n") ? "min-h-[132px]" : "min-h-[108px]"
+            )}
+          />
+        </div>
+
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-black/[0.08] dark:bg-white/10">
+              <div
+                className="h-full rounded-full bg-[#407c69] transition-[width] duration-300"
+                style={{ width: `${completionRate}%` }}
+              />
             </div>
-          </ListboxItem>
-        ))}
-      </Listbox>
+            <p className="text-xs text-[#74685d] dark:text-[#9ba5ad]">
+              {completionRate}% complete
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              id="add-task-button"
+              size="sm"
+              className="bg-[#1f1a16] px-4 text-white dark:bg-[#eef1f3] dark:text-[#101418]"
+              isDisabled={!task.trim()}
+              onPress={addTask}
+              aria-label="Add task"
+            >
+              Add
+            </Button>
+            <Button
+              id="export-button"
+              size="sm"
+              variant="flat"
+              className="border border-black/10 bg-white/80 px-4 text-[#1f1a16] dark:border-white/10 dark:bg-white/5 dark:text-[#eef1f3]"
+              isDisabled={!todos.length}
+              onPress={() => setIsExportModalOpen(true)}
+              aria-label="Export tasks"
+            >
+              Export
+            </Button>
+            <Button
+              size="sm"
+              className="bg-[#407c69] px-4 text-white"
+              isDisabled={!task.trim() || loading}
+              onPress={() => generateTasksWithAI(task.trim())}
+              aria-label="Generate tasks with AI"
+            >
+              {loading ? "Generating..." : "Use AI"}
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-3" id="todo-list">
+        {!todos.length ? (
+          <div className="surface-panel px-4 py-8 text-center sm:px-5">
+            <p className="text-sm text-[#74685d] dark:text-[#9ba5ad]">
+              No tasks yet. Add one to get started.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {todos.map((todo, index) => (
+              <article
+                key={todo.id}
+                className={clsx("todo-card", todo.completed && "complete")}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 text-[0.64rem] uppercase tracking-[0.22em] text-[#74685d] dark:text-[#9ba5ad]">
+                      <span className="font-mono">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span>{formatDateTime(todo.id)}</span>
+                      {todo.completed ? <span>Done</span> : null}
+                    </div>
+                    <p
+                      className={clsx(
+                        "mt-2 whitespace-pre-wrap break-words text-[0.98rem] leading-7 text-[#1f1a16] dark:text-[#eef1f3]",
+                        todo.completed && "line-through opacity-70"
+                      )}
+                    >
+                      {todo.text}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    <Button
+                      size="sm"
+                      className={clsx(
+                        "px-3 text-white",
+                        todo.completed ? "bg-[#6d675f]" : "bg-[#407c69]"
+                      )}
+                      onPress={() => toggleTask(todo.id)}
+                      aria-label={
+                        todo.completed ? "Mark task active" : "Mark task done"
+                      }
+                    >
+                      {todo.completed ? "Undo" : "Done"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      className="border border-black/10 bg-white/80 px-3 text-[#1f1a16] dark:border-white/10 dark:bg-white/5 dark:text-[#eef1f3]"
+                      onPress={() => {
+                        setEditingTask(todo);
+                        setIsEditModalOpen(true);
+                      }}
+                      aria-label="Edit task"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      className="bg-[#7a3f32] px-3 text-white"
+                      onPress={() => deleteTask(todo.id)}
+                      aria-label="Delete task"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
       <Modal
-        isOpen={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        aria-labelledby="modal-title"
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
       >
         <ModalContent>
           <ModalHeader>
-            <h3 id="modal-title">Confirm Clear All</h3>
+            <h3 className="font-display text-3xl">Clear list?</h3>
           </ModalHeader>
           <ModalBody>
-            <p>Are you sure you want to clear all tasks and start new day?</p>
+            <p>Your current tasks will be saved in history first.</p>
           </ModalBody>
           <ModalFooter>
-            <Button
-              color="secondary"
-              onPress={handleClearAll}
-              aria-label="Confirm clear all tasks"
-            >
-              Yes, Clear All
+            <Button className="bg-[#7a3f32] text-white" onPress={clearAllTasks}>
+              Archive and clear
             </Button>
-            <Button
-              onPress={() => setIsModalVisible(false)}
-              aria-label="Cancel clear all tasks"
-            >
+            <Button variant="light" onPress={() => setIsClearModalOpen(false)}>
               Cancel
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-      {/* Export Modal */}
+
       <Modal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         size="lg"
       >
         <ModalContent>
-          <ModalHeader>Export Tasks</ModalHeader>
+          <ModalHeader>
+            <h3 className="font-display text-3xl">Export</h3>
+          </ModalHeader>
           <ModalBody>
             <div className="space-y-2">
               {todos.map((todo, index) => (
-                <div key={todo.id} className="flex items-center gap-2">
-                  <span className="font-medium">{index + 1}.</span>
-                  <span className={todo.completed ? "line-through" : ""}>
-                    {todo.text}
-                  </span>
+                <div
+                  key={todo.id}
+                  className="rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="font-mono text-sm text-[#74685d] dark:text-[#9ba5ad]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className={todo.completed ? "line-through opacity-70" : ""}>
+                      {todo.text}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
           </ModalBody>
           <ModalFooter>
-            <Button
-              color="secondary"
-              variant="light"
-              onClick={copyToClipboard}
-              className="mr-auto"
-            >
-              Copy to Clipboard
+            <Button variant="flat" onPress={copyPlainText}>
+              Copy text
             </Button>
-            <Button
-              color="secondary"
-              variant="light"
-              onClick={copyToClipboardHtml}
-              className="mr-auto"
-            >
-              Copy html
+            <Button variant="flat" onPress={copyHtml}>
+              Copy HTML
             </Button>
-            <Button
-              color="danger"
-              variant="light"
-              onClick={() => setIsExportModalOpen(false)}
-            >
+            <Button variant="light" onPress={() => setIsExportModalOpen(false)}>
               Close
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-      {/* Edit Modal */}
+
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => {
@@ -542,99 +613,130 @@ const TodoList: React.FC = () => {
         }}
       >
         <ModalContent>
-          <ModalHeader>Edit Task</ModalHeader>
+          <ModalHeader>
+            <h3 className="font-display text-3xl">Edit task</h3>
+          </ModalHeader>
           <ModalBody>
             <textarea
-              id="todo-edit-input"
               value={editingTask?.text || ""}
-              onKeyDown={handleKeyPressEdit}
-              onChange={(e) =>
+              onChange={(event) =>
                 setEditingTask(
-                  editingTask ? { ...editingTask, text: e.target.value } : null
+                  editingTask
+                    ? { ...editingTask, text: event.target.value }
+                    : null
                 )
               }
-              placeholder="Edit your task"
-              aria-label="Edit your task"
-              className="w-full rounded-2xl h-24 p-2 resize-none"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                  event.preventDefault();
+                  saveEditedTask();
+                }
+              }}
+              placeholder="Refine the task"
+              aria-label="Edit task"
+              className="planner-textarea min-h-[140px]"
             />
           </ModalBody>
           <ModalFooter>
             <Button
-              color="primary"
+              className="bg-[#1f1a16] text-white dark:bg-[#eef1f3] dark:text-[#101418]"
               onPress={saveEditedTask}
-              aria-label="Save edited task"
             >
               Save
             </Button>
             <Button
+              variant="light"
               onPress={() => {
                 setIsEditModalOpen(false);
                 setEditingTask(null);
               }}
-              aria-label="Cancel edit"
             >
               Cancel
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-      {/* History Modal */}
+
       <Modal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        size="lg"
+        size="4xl"
       >
         <ModalContent>
-          <ModalHeader>History</ModalHeader>
+          <ModalHeader>
+            <h3 className="font-display text-3xl">History</h3>
+          </ModalHeader>
           <ModalBody>
-            <div
-              className="space-y-2 overflow-y-scroll"
-              style={{ maxHeight: "calc(100vh - 30rem)" }}
-            >
-              {taskHistory
-                .slice()
-                .sort(
-                  (a, b) =>
-                    new Date(b.datetime).getTime() -
-                    new Date(a.datetime).getTime()
-                )
-                .map((history, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => handleHistoryDetail(index)}
-                  >
-                    <span className="font-medium">{index + 1}.</span>
-                    <span>{history.todos.length} tasks</span>
-                    <span className="text-gray-500 text-xs">
-                      - {new Date(history.datetime).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-            </div>
-            <div
-              className="mt-4 cursor-pointer bg-gray-700 p-2 rounded-2xl overflow-y-scroll"
-              style={{ maxHeight: "calc(100vh - 30rem)" }}
-              onClick={() => handleHistoryClick(historyIndex)}
-            >
-              <h4 className="font-medium">
-                Tasks in this History (click to apply):
-              </h4>
-              <ul className="list-disc pl-4">
-                {todosHistory.map((todo) => (
-                  <li key={todo.id}>
-                    {todo.text} {todo.completed ? "(Completed)" : "(Pending)"}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {!sortedTaskHistory.length ? (
+              <p className="text-sm text-[#74685d] dark:text-[#9ba5ad]">
+                No saved snapshots yet.
+              </p>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-[0.86fr,1.14fr]">
+                <div className="max-h-[380px] space-y-2 overflow-y-auto pr-1">
+                  {sortedTaskHistory.map((entry) => {
+                    const isSelected =
+                      historyPreview?.datetime === entry.datetime;
+
+                    return (
+                      <button
+                        key={entry.datetime}
+                        type="button"
+                        className={clsx(
+                          "w-full rounded-[18px] border px-4 py-3 text-left transition",
+                          isSelected
+                            ? "border-[#407c69] bg-[#407c69]/10"
+                            : "border-black/10 bg-black/[0.02] hover:border-[#407c69]/30 hover:bg-[#407c69]/5 dark:border-white/10 dark:bg-white/[0.03]"
+                        )}
+                        onClick={() => setHistoryPreview(entry)}
+                      >
+                        <p className="text-[0.64rem] uppercase tracking-[0.22em] text-[#74685d] dark:text-[#9ba5ad]">
+                          {formatDateTime(entry.datetime)}
+                        </p>
+                        <p className="mt-1 text-sm text-[#1f1a16] dark:text-[#eef1f3]">
+                          {entry.todos.length} task
+                          {entry.todos.length === 1 ? "" : "s"}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-[18px] border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                  <p className="text-[0.64rem] uppercase tracking-[0.22em] text-[#74685d] dark:text-[#9ba5ad]">
+                    Preview
+                  </p>
+                  {historyPreview ? (
+                    <ul className="mt-3 max-h-[280px] space-y-2 overflow-y-auto pr-1">
+                      {historyPreview.todos.map((todo) => (
+                        <li
+                          key={todo.id}
+                          className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]"
+                        >
+                          <span className={todo.completed ? "line-through opacity-70" : ""}>
+                            {todo.text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-[#74685d] dark:text-[#9ba5ad]">
+                      Select a snapshot to preview it.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </ModalBody>
           <ModalFooter>
             <Button
-              color="danger"
-              variant="light"
-              onClick={() => setIsHistoryModalOpen(false)}
+              className="bg-[#1f1a16] text-white dark:bg-[#eef1f3] dark:text-[#101418]"
+              isDisabled={!historyPreview}
+              onPress={restoreHistory}
             >
+              Restore
+            </Button>
+            <Button variant="light" onPress={() => setIsHistoryModalOpen(false)}>
               Close
             </Button>
           </ModalFooter>
@@ -642,6 +744,4 @@ const TodoList: React.FC = () => {
       </Modal>
     </div>
   );
-};
-
-export default TodoList;
+}
